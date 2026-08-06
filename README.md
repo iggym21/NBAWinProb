@@ -35,19 +35,30 @@ Evaluated on 200 games from the 2023-24 NBA season (160/20/20 train/val/test spl
 
 | Metric | LSTM | Logistic Regression baseline |
 |---|---|---|
-| Brier score (lower better) | 0.2476 | 0.2282 |
-| Log-loss (lower better) | 0.6882 | 0.6401 |
+| Brier score (lower better) | 0.2177 | 0.1594 |
+| Log-loss (lower better) | 0.6169 | 0.4743 |
 
 | Time remaining | LSTM accuracy | Baseline accuracy | N |
 |---|---|---|---|
-| >36 min | 0.547 | 0.575 | 2357 |
-| 12-36 min | 0.539 | 0.588 | 4735 |
-| 3-12 min | 0.541 | 0.614 | 1698 |
-| <3 min | 0.561 | 0.658 | 660 |
+| >36 min | 0.547 | 0.664 | 2357 |
+| 12-36 min | 0.547 | 0.731 | 4735 |
+| 3-12 min | 0.553 | 0.847 | 1698 |
+| <3 min | 0.582 | 0.938 | 660 |
 
-**Honest read: on this 200-game sample, the logistic-regression baseline beats the LSTM on every metric.** The design goal was a sequence model that meaningfully outperforms the baseline — that didn't happen here, and it's reported as-is rather than reframed. A few plausible reasons: 200 games / 30 full-batch epochs is a small training run for a sequence model to learn from, relative to a baseline that's already hard to beat on well-engineered per-event features (score differential and time remaining alone carry most of the signal in basketball win-prob); and the LSTM's predictions were narrowly calibrated, clustering roughly in the 50-70% range rather than spanning the full probability range the baseline covers. More games, more epochs, mini-batching instead of full-batch, or a smaller-capacity/regularized LSTM are the natural next steps to close this gap.
+**Honest read: the logistic-regression baseline beats the LSTM on every metric, by a wider margin than an earlier run of this same pipeline suggested.** That earlier run had a data bug: `scoreHome`/`scoreAway` are only populated by the NBA API on actual scoring plays (~26% of events) — every other event (rebounds, misses, fouls, subs, timeouts) had a blank score field that `int(x or 0)` silently coerced into a fake 0-0 tie, corrupting `score_diff` — the single most predictive feature in basketball win-probability — on ~74% of all training events. After fixing that (carrying the last real score forward instead), both models were retrained on the corrected data; the numbers above are from that corrected run.
+
+With `score_diff` actually usable, the baseline's late-game accuracy jumped to 93.8% in the final 3 minutes, which makes sense — a linear model can directly and strongly weight a now-reliable score differential. The LSTM improved too, but far less: it still clusters its predictions in a narrower range and its late-game accuracy (58.2%) barely moved. The design goal was a sequence model that meaningfully outperforms the baseline — that still hasn't happened, and it's reported as-is rather than reframed. The gap is now most visible exactly where a sequence model should have an edge (using momentum/run information a per-event baseline can't), which points more at the training setup than the data: 160 training games with one full-batch gradient step per epoch (no mini-batching) is a small, low-variance optimization regime for a sequence model, especially next to a baseline fitting a strongly near-linear decision boundary. More games, more epochs, mini-batching instead of full-batch, or a smaller-capacity/regularized LSTM remain the natural next steps to close this gap.
 
 ## Quickstart
+
+**0. Setup** (clone, create the backend venv, install dependencies):
+
+```bash
+git clone https://github.com/iggym21/NBAWinProb.git && cd NBAWinProb
+cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd ../frontend && npm install
+cd ..
+```
 
 **1. Fetch data** (one-time historical pull, cached to `data/raw/` and `data/nba.db`):
 
