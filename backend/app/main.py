@@ -2,6 +2,7 @@
 import os
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
@@ -25,11 +26,14 @@ _state: dict = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # init_db is idempotent (CREATE TABLE IF NOT EXISTS), so calling it once
-    # here (rather than per-request) makes GET /games resilient to a
-    # fresh clone with no backend/data/nba.db present yet -- it returns
-    # {"replay_games": [], "live_available": false} instead of a 500 from
-    # sqlite3.OperationalError: no such table.
+    # A fresh clone has no backend/data/ directory at all (it's gitignored),
+    # so create it before connecting -- otherwise sqlite3.connect() itself
+    # fails and the app never boots. init_db is idempotent
+    # (CREATE TABLE IF NOT EXISTS), so calling it once here (rather than
+    # per-request) makes GET /games resilient to a missing/fresh nba.db --
+    # it returns {"replay_games": [], "live_available": false} instead of a
+    # 500 from sqlite3.OperationalError: no such table.
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     conn = get_connection(DB_PATH)
     try:
         init_db(conn)

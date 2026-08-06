@@ -83,11 +83,12 @@ def test_get_games_uses_cached_live_availability(client, monkeypatch):
 
 
 def test_get_games_returns_empty_lists_when_db_missing(tmp_path, monkeypatch):
-    # A fresh clone has no backend/data/nba.db (gitignored). GET /games must
-    # not 500 in that case -- it should behave as if there are simply no
-    # cached replay games yet.
+    # A fresh clone has neither backend/data/nba.db nor backend/data/ itself
+    # (both gitignored). GET /games must not 500 or fail to boot in that
+    # case -- it should behave as if there are simply no cached replay
+    # games yet. Deliberately do NOT pre-create the parent directory here --
+    # that's the real fresh-clone state, and app startup must create it.
     missing_db = tmp_path / "does-not-exist" / "nba.db"
-    missing_db.parent.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("NBA_DB_PATH", str(missing_db))
     monkeypatch.setenv(
         "NBA_MODEL_PATH", str(FIXTURES / "fixture_model.pt")
@@ -97,12 +98,14 @@ def test_get_games_returns_empty_lists_when_db_missing(tmp_path, monkeypatch):
     import importlib
     import app.main as main_module
     importlib.reload(main_module)
+    monkeypatch.setattr(main_module, "is_live_game_available", lambda: False)
 
     with TestClient(main_module.app) as c:
         resp = c.get("/games")
 
     assert resp.status_code == 200
     assert resp.json() == {"replay_games": [], "live_available": False}
+    assert missing_db.parent.is_dir()
 
 
 def test_replay_websocket_empty_game_closes_without_error(client, tmp_path):
