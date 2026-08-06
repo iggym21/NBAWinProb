@@ -39,8 +39,10 @@ def is_live_game_available() -> bool:
 @app.get("/games", response_model=GamesResponse)
 def get_games() -> GamesResponse:
     conn = get_connection(DB_PATH)
-    games = list_games(conn)
-    conn.close()
+    try:
+        games = list_games(conn)
+    finally:
+        conn.close()
     return GamesResponse(
         replay_games=[GameSummary(**g) for g in games],
         live_available=is_live_game_available(),
