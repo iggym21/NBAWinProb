@@ -44,8 +44,16 @@ def parse_game_list(rows: list[dict]) -> list[GameRow]:
 def parse_playbyplay_rows(
     pbp_rows: list[dict], home_team_tricode: str, away_team_tricode: str
 ) -> list[EventRow]:
-    """Converts raw PlayByPlayV3 rows to EventRows, dropping unparseable clocks."""
+    """Converts raw PlayByPlayV3 rows to EventRows, dropping unparseable clocks.
+
+    NBA's PlayByPlayV3 only populates scoreHome/scoreAway on actual scoring
+    plays -- every other row (rebounds, misses, fouls, subs, timeouts, etc.)
+    has a blank scoreHome/scoreAway. We carry forward the last known real
+    score rather than treating a blank field as a fake 0-0 tie.
+    """
     events: list[EventRow] = []
+    last_home_score = 0
+    last_away_score = 0
     for row in pbp_rows:
         clock = row.get("clock")
         if parse_clock_to_seconds(clock) is None:
@@ -57,14 +65,18 @@ def parse_playbyplay_rows(
             possession_team = "away"
         else:
             possession_team = None
+        if row.get("scoreHome"):
+            last_home_score = int(row["scoreHome"])
+        if row.get("scoreAway"):
+            last_away_score = int(row["scoreAway"])
         events.append(
             EventRow(
                 game_id=str(row.get("gameId", "")),
                 event_index=len(events),
                 period=int(row["period"]),
                 clock=clock,
-                home_score=int(row.get("scoreHome") or 0),
-                away_score=int(row.get("scoreAway") or 0),
+                home_score=last_home_score,
+                away_score=last_away_score,
                 event_type=row.get("actionType") or "",
                 description=row.get("description") or "",
                 possession_team=possession_team,

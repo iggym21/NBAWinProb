@@ -49,6 +49,27 @@ def test_parse_playbyplay_rows_from_fixture():
     assert all("description" in e for e in events)
 
 
+def test_parse_playbyplay_rows_carries_forward_blank_scores():
+    # NBA's PlayByPlayV3 only populates scoreHome/scoreAway on actual scoring
+    # plays; blank fields must carry forward the last known real score, not
+    # coerce to a fake 0-0 tie.
+    raw_rows = [
+        {"actionNumber": 1, "clock": "PT12M00.00S", "period": 1, "teamTricode": "",
+         "scoreHome": "", "scoreAway": "", "actionType": "Jump Ball", "description": "Tip"},
+        {"actionNumber": 2, "clock": "PT11M42.00S", "period": 1, "teamTricode": "DEN",
+         "scoreHome": "2", "scoreAway": "0", "actionType": "Made Shot", "description": "Make"},
+        {"actionNumber": 3, "clock": "PT11M20.00S", "period": 1, "teamTricode": "LAL",
+         "scoreHome": "", "scoreAway": "", "actionType": "Rebound", "description": "Rebound"},
+        {"actionNumber": 4, "clock": "PT11M00.00S", "period": 1, "teamTricode": "LAL",
+         "scoreHome": "", "scoreAway": "3", "actionType": "Made Shot", "description": "3pt make"},
+        {"actionNumber": 5, "clock": "PT10M40.00S", "period": 1, "teamTricode": "DEN",
+         "scoreHome": "", "scoreAway": "", "actionType": "Foul", "description": "Foul"},
+    ]
+    events = parse_playbyplay_rows(raw_rows, home_team_tricode="DEN", away_team_tricode="LAL")
+    assert [e["home_score"] for e in events] == [0, 2, 2, 2, 2]
+    assert [e["away_score"] for e in events] == [0, 0, 0, 3, 3]
+
+
 def test_parse_playbyplay_rows_drops_unparseable_clock():
     raw_rows = [
         {"actionNumber": 1, "clock": "PT12M00.00S", "period": 1, "teamTricode": "DEN",
