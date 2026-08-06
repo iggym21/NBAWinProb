@@ -49,3 +49,16 @@ def test_replay_websocket_unknown_game_closes_immediately(client):
     with pytest.raises(Exception):
         with client.websocket_connect("/replay/does-not-exist") as ws:
             ws.receive_json()
+
+
+def test_replay_websocket_empty_game_closes_without_error(client, tmp_path):
+    import app.main as main_module
+    from app.db import get_connection, insert_game
+
+    conn = get_connection(main_module.DB_PATH)
+    insert_game(conn, {"game_id": "empty-game", "home_team": "X", "away_team": "Y", "home_win": 1})
+    conn.close()
+
+    with client.websocket_connect("/replay/empty-game") as ws:
+        with pytest.raises(Exception):
+            ws.receive_json()
