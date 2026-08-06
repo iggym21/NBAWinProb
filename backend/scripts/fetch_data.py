@@ -107,14 +107,18 @@ def fetch_and_store(season: str, max_games: int, out_db: str, raw_dir: str) -> N
             cache_file.write_text(json.dumps(raw_pbp_rows, indent=2, default=str))
             time.sleep(0.6)  # be polite to stats.nba.com
 
-        events = parse_playbyplay_rows(raw_pbp_rows, game["home_team"], game["away_team"])
-        if not events:
-            print(f"[{i+1}/{len(games)}] {game_id} produced 0 usable events, skipping.")
-            continue
+        try:
+            events = parse_playbyplay_rows(raw_pbp_rows, game["home_team"], game["away_team"])
+            if not events:
+                print(f"[{i+1}/{len(games)}] {game_id} produced 0 usable events, skipping.")
+                continue
 
-        insert_game(conn, game)
-        insert_events(conn, events)
-        print(f"[{i+1}/{len(games)}] {game_id} stored ({len(events)} events).")
+            insert_game(conn, game)
+            insert_events(conn, events)
+            print(f"[{i+1}/{len(games)}] {game_id} stored ({len(events)} events).")
+        except Exception as exc:
+            print(f"[{i+1}/{len(games)}] {game_id} FAILED: {exc}")
+            continue
 
     conn.close()
 
