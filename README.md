@@ -4,8 +4,8 @@ A live NBA win-probability model — a PyTorch LSTM watches play-by-play events 
 
 [![CI](https://github.com/iggym21/NBAWinProb/actions/workflows/ci.yml/badge.svg)](https://github.com/iggym21/NBAWinProb/actions/workflows/ci.yml)
 
-![Win probability across a full game replay](docs/screenshots/replay-chart.png)
-*Win probability across a completed replay of GSW @ DAL — the chart, score/clock header, and play log are all driven by the same WebSocket event stream.*
+![Win probability chart mid-replay, Q4 with about 4 minutes left](docs/screenshots/replay-chart.png)
+*Mid-replay of GSW @ DAL — Q4, ~4 minutes left, GSW up 94-92. The chart, score/clock header, and play log are all driven by the same WebSocket event stream, live as the replay streams in.*
 
 ## What this is
 
@@ -101,11 +101,11 @@ CI (`.github/workflows/ci.yml`) runs both on every push to `main` and every pull
 
 ## Screenshots
 
-| Game picker | Full game replay | Play log |
+| Game picker | Mid-game replay | Play log |
 |---|---|---|
-| ![Game picker](docs/screenshots/game-picker.png) | ![Win probability chart after a completed full game replay](docs/screenshots/replay-chart.png) | ![Scrolling play-by-play log](docs/screenshots/play-log.png) |
+| ![Game picker](docs/screenshots/game-picker.png) | ![Win probability chart partway through a replay, Q4 with several minutes left](docs/screenshots/replay-chart.png) | ![Scrolling play-by-play log, Q4 in progress](docs/screenshots/play-log.png) |
 
-The replay and play-log screenshots were captured at the end of a full replay of GSW @ DAL (final: Q4 00:00, home win probability 59%) — the chart shows the win-probability line across the entire game and the play log is fully populated.
+The replay and play-log screenshots were both captured partway through a replay of GSW @ DAL, in the 4th quarter with real time still on the clock — not after the game had already finished — so the connection is live ("Connected") and the win-probability line is still being drawn in real time.
 
 ## Project Structure
 
